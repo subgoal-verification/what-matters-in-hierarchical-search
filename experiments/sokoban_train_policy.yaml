@@ -1,0 +1,61 @@
+algorithm:
+  _target_: carl.algorithms.train_supervised.TrainSupervisedHF
+  custom_logger: null
+  datamodule:
+    _target_: carl.dataloader.game_data_module.GameDataModule
+    env:
+      _target_: carl.environment.sokoban.env.SokobanEnv
+      tokenizer:
+        _target_: carl.environment.sokoban.tokenizer.SokobanTokenizer
+        cut_distance: 150
+        type_of_value_training: "regression"
+        size_of_board:
+          - 12
+          - 12
+      num_boxes: 4
+    num_of_trajectories: 10
+    dataset_path: path_to_dataset
+    save_tokenized_dataset_path: path_to_save_tokenized_dataset
+    training_goal: "policy"
+    validation_split: 0.01
+    num_workers: 1
+  custom_metrics:
+    _target_: carl.components.metrics.PolicyMetricsHF
+  trainer:
+    _partial_: True
+    _target_: transformers.Trainer
+    args:
+      _target_: transformers.TrainingArguments
+      output_dir: "models_weights/sokoban/policy"
+      overwrite_output_dir: False
+      evaluation_strategy: epoch
+      per_device_train_batch_size: 512
+      per_device_eval_batch_size: 512
+      learning_rate: 0.0001
+      weight_decay: 0.0001
+      num_train_epochs: 10000
+      lr_scheduler_type: linear
+      log_level: info
+      logging_strategy: epoch
+      save_strategy: epoch
+      save_total_limit: 1
+      load_best_model_at_end: True
+      metric_for_best_model: eval_loss
+      warmup_steps: 0
+      report_to: none
+  model:
+    _partial_: True
+    _target_: transformers.BertForSequenceClassification
+  config:
+    _target_: transformers.BertConfig
+    hidden_size: 512
+    intermediate_size: 512
+    max_position_embeddings: 512
+    num_attention_heads: 1
+    num_hidden_layers: 1
+    vocab_size: 22
+    num_labels: 4
+
+
+  do_finetune: False
+  path_to_model_weights: null
