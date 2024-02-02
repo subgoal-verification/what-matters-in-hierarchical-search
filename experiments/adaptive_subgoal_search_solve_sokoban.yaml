@@ -1,0 +1,124 @@
+float32_matmul_precision: medium
+algorithm:
+
+  # SolveInstances has parameters:
+    #   - solver_class - this class is responsible for solving the problem. It has parameters:
+    #           - max_nodes - maximum number of nodes to be expanded
+    #           - planner_class - this class is responsible for planning the path
+    #           - subgoal_generator - this class is responsible for generating subgoals
+    #           - validator - this class is responsible for validating the plan, i.e. checking if there is a path from the initial state to the goal state
+    #           - cllp - this class is responsible for executing the plan, i.e. executing the actions in the plan, i.e. finding the path from the initial state to the goal state
+    #           - value_function - this class is responsible for evaluating the state, i.e. estimating the distance from the state to the solution
+    #   - data_loader_class - this class is responsible for loading the data to be solved
+    #   - result_logger - this class is responsible for logging the results
+    #   - problem_to_solve - number of problems to be solved
+    #   - n_parallel_workers - number of parallel workers, i.e. number of processes to be used
+
+
+  _target_: carl.solve_instances.solve_instances.SolveInstances
+
+  # solver class
+  solver:
+    _target_: carl.solver.subgoal_search.Solver
+    # _target_: carl.solver.subgoal_search_batched.SubgoalSearchSolver # Comment this for the non-batched version
+    # inference_batch_size: 384 # Comment this for the non-batched version
+    max_nodes: 500
+    planner_class:
+      _partial_: true
+      _target_: carl.solver.planners.AdasubsPlanner
+      generators_k_list: [4]
+
+    # subgoal generator
+    subgoal_generator:
+      _target_: carl.inference_components.subgoal_generator.AdaptiveSubgoalGenerator
+      env:
+        _target_: carl.environment.sokoban.env.SokobanEnv
+        tokenizer:
+          _target_: carl.environment.sokoban.tokenizer.SokobanTokenizer
+          cut_distance: None
+          type_of_value_training: regression
+          size_of_board:
+            - 12
+            - 12
+        num_boxes: 4
+      subgoal_generation_kwargs:
+        min_new_tokens: 145
+        early_stopping: True 
+        max_new_tokens: 145
+        num_beams: 16
+        num_return_sequences: 2
+        # do_sample: True
+        # top_k: 2
+      generator_k_list: [4]
+      paths_to_generator_weights:
+        - path_to_generator_weights
+      subgoal_generator_class:
+        _target_: carl.inference_components.subgoal_generator.TransformerSubgoalGenerator
+        _partial_: True
+        generator_class:
+          _target_: transformers.BartForConditionalGeneration.from_pretrained
+          _partial_: True
+    # validator
+    validator:
+      _target_: carl.inference_components.validator.BasicValidator
+      inference_batch_size: 1024
+      env_class:
+        _target_: carl.environment.sokoban.env.SokobanEnv
+        tokenizer:
+          _target_: carl.environment.sokoban.tokenizer.SokobanTokenizer
+          cut_distance: 150
+          type_of_value_training: regression
+          size_of_board:
+            - 12
+            - 12
+        num_boxes: 4
+        _partial_: True
+
+      # conditional low level policy
+      cllp:
+        _target_: carl.inference_components.conditional_low_level_policy.TransformerConditionalLowLevelPolicy
+        conditional_low_level_policy_class:
+          _target_: transformers.BertForSequenceClassification.from_pretrained
+          _partial_: True
+        path_to_conditional_low_level_policy_weights: path_to_cllp_weights
+        env:
+          _target_: carl.environment.sokoban.env.SokobanEnv
+          tokenizer:
+            _target_: carl.environment.sokoban.tokenizer.SokobanTokenizer
+            cut_distance: 150
+            type_of_value_training: regression
+            size_of_board:
+              - 12
+              - 12
+          num_boxes: 4
+
+    # value function
+    value_function:
+      _target_: carl.inference_components.value.TransformerValue
+      value_network_class:
+        _target_: transformers.BertForSequenceClassification.from_pretrained
+        _partial_: True
+      path_to_value_network_weights: path_to_value_weights
+      type_of_evaluation: "regression"
+      env:
+        _target_: carl.environment.sokoban.env.SokobanEnv
+        tokenizer:
+          _target_: carl.environment.sokoban.tokenizer.SokobanTokenizer
+          cut_distance: 150
+          type_of_value_training: "regression"
+          size_of_board:
+            - 12
+            - 12
+        num_boxes: 4
+
+  # data loader class
+  data_loader:
+    _target_: carl.environment.instance_generator.BasicInstanceGenerator
+    generator:
+      _target_: carl.environment.instance_generator.Ge z zneralIterableDataLoader
+      path_to_folder_with_data: path_to_folder_with_data
+    batch_size: 1
+
+  # result logger
+  result_logger: null
+  n_jobs: -1
