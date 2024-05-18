@@ -1,4 +1,4 @@
-# What Matters in Hierarchical Search for Combinatorial Problems?
+# What Matters in Hierarchical Search for Combinatorial Reasoning Problems?
 
 In this study, we extensively test which properties of the environments and training datasets make them amenable to subgoal methods. Furthermore, we verify the common beliefs present in the literature regarding that class of algorithms.
 We identify the attributes pivotal for leveraging the advantages of high-level search: *presence of dead ends in the environment, hard-to-learn value functions, complex action spaces, or using data collected from diverse experts*. As an additional outcome of our experiments, we discover several pitfalls in evaluation that are easy to overlook but lead to misleading conclusions. To solve this problem, we propose a consistent evaluation methodology, which allows for a meaningful comparison between various methods.
